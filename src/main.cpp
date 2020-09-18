@@ -11,10 +11,10 @@
 #define mqtt_password "your_password" //not used, make a change in the mqtt initializer
 String  ssid = "4M";      //CHANGE (WiFi Name)
 String pwd = "wldW56@18";      //CHANGE (WiFi password)
-const int sleepTimeS = 3*60*60; // 3 hour , note that max deep sleep the wemos can handle is about 3h 20min
-//const int sleepTimeS = 1*60; // 1 min for debugging
+//const int sleepTimeS = 3*60*60; // 3 hour , note that max deep sleep the wemos can handle is about 3h 20min
+const int sleepTimeS = 15*60; // 1 min for debugging
 const int hum_threshold = 75; // In percentage, If soil humidity under hum_threshold it will trigger the watering
-const int watering_time = 60*1000; // in mili seconds
+const int watering_time = 30*1000; // in mili seconds
 const int hum_offset = 280; // define humidity offset in raw ticks
 #define Pin_motor D1 // define wemos pin for triggering pump
 /***********************************************************************************************/
@@ -98,7 +98,8 @@ void loop()
   float soil_hum = (1024-hum_raw+hum_offset)/1024.0*100; // as it is mapped to 0 to 1024, like that we get the percentage 
   Serial.print("Moisture: ");
   Serial.println(soil_hum);  
-  client.publish((sensor_topic + "/Hummidity").c_str(), ("SOIL_RH,site=balcony value=" + String(soil_hum)).c_str(), false);
+  client.publish((sensor_topic + "/Humidity").c_str(), ("SOIL_RH,site=balcony value=" + String(soil_hum)).c_str(), false);
+  delay(500);
   if(soil_hum<hum_threshold){
     digitalWrite(Pin_motor, HIGH);
     delay(watering_time);
