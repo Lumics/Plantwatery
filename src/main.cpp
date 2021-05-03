@@ -19,10 +19,6 @@
 #define mqtt_password \
     "your_password"  // not used, make a change in the mqtt initializer
 
-#define uS_TO_S_FACTOR \
-    1000000L                /* Conversion factor for micro seconds to seconds */
-#define wifi_timeout 5000L  // 5 seconds in milliseconds
-
 String ssid = WIFI_SSID;             // CHANGE (WiFi Name)
 String pwd = WIFI_PASSWD;            // CHANGE (WiFi password)
 String sensor_location = "balcony";  // define sensor location
@@ -40,13 +36,17 @@ const char* timeZone = "CET-1CEST,M3.5.0,M10.5.0/3";
 
 // watering time
 const int watering_hour_am = 8;       // 8 am
-const int watering_hour_pm = 16;      // 8 pm
+const int watering_hour_pm = 21;      // 8 pm
 const int watering_time = 30 * 1000;  // in mili seconds
 
 // *** Hardware Definitions ***
 #define Pin_pump 32         // define wemos pin for triggering pump
 #define Pin_humi_sensor 33  // define analog pin to read from humidity sensor
 // when wifi active only ADC1 available GPIO32 - GPIO39
+
+
+uint64_t uS_TO_S_FACTOR = 1000000; //Conversion factor for micro seconds to seconds 
+#define wifi_timeout 5000L  // 5 seconds in milliseconds
 
 // *** persistent data ***
 RTC_DATA_ATTR int bootCount =
@@ -69,7 +69,7 @@ String device_type = "Arduino";
 String device_name = "esp32_plantwatery";
 int wifi_setup_timer = 0;
 
-int sleepTimeS = 1 * 60L;  // 1 min for debugging
+
 
 void setup_wifi() {
     char ssid1[30];
@@ -94,22 +94,26 @@ void setup_wifi() {
     log_i("IP address: %d", WiFi.localIP());
 }
 
-void goToDeepSleep() {
+void goToDeepSleep(uint64_t sleepTime_sec) {
     // testing
-    sleepTimeS = 60;
-    log_i("Going to sleep for %d seconds", sleepTimeS);
+    //sleepTimeS = 60;
+    log_i("Going to sleep for %d seconds", sleepTime_sec);
+    client.disconnect();
+    delay(300);
     WiFi.disconnect(true);
     WiFi.mode(WIFI_OFF);
     btStop();
-
+    delay(300);
     esp_wifi_stop();
     esp_bt_controller_disable();
 
     // Configure the timer to wake us up!
-    esp_sleep_enable_timer_wakeup(sleepTimeS * uS_TO_S_FACTOR);
-    Serial.flush();
+    uint64_t sleeptime = sleepTime_sec * uS_TO_S_FACTOR; // needed to sleep long enough
+    esp_err_t error = esp_sleep_enable_timer_wakeup(sleeptime);
+    Serial.println(error);
+    //Serial.flush();
     // give enough time to print everything to serial
-    delay(100);
+    delay(300);
     // Go to sleep! Zzzz
     esp_deep_sleep_start();
     log_e("this should not happen");
@@ -122,19 +126,28 @@ void print_wakeup_reason() {
 
     switch (wakeup_reason) {
         case 1:
-            log_i("Wakeup caused by external signal using RTC_IO");
+            log_i("Not a wakeup cause, used to disable all wakeup sources");
             break;
         case 2:
-            log_i("Wakeup caused by external signal using RTC_CNTL");
+            log_i("Wakeup caused by external signal using RTC_IO");
             break;
         case 3:
-            log_i("Wakeup caused by timer");
+            log_i("Wakeup caused by external signal using RTC_CNTL");
             break;
         case 4:
-            log_i("Wakeup caused by touchpad");
+            log_i("Wakeup caused by timer");
             break;
         case 5:
+            log_i("Wakeup caused by touchpad");
+            break;
+        case 6:
             log_i("Wakeup caused by ULP program");
+            break;
+        case 7:
+            log_i("Wakeup caused by GPIO");
+            break;
+        case 8:
+            log_i("Wakeup caused by UART");
             break;
         default:
             log_i("Wakeup was not caused by deep sleep");
@@ -165,7 +178,8 @@ bool isTimeToWater() {
     return true;
 }
 
-void setSleepTime() {
+int setSleepTime() {
+    int sleepTimeS = 29000;  // define standard as about 8h 
     time(&now);
     struct tm curr_time;
     localtime_r(&now, &curr_time);
@@ -199,6 +213,7 @@ void setSleepTime() {
 
     sleepTimeS = (int)seconds;
     log_i("Set sleep time to %d [s]", sleepTimeS);
+    return sleepTimeS;
 }
 
 void printLocalTime() {
@@ -279,8 +294,6 @@ void loop() {
 
     hum_raw = analogRead(Pin_humi_sensor);
     log_i("Raw Soil Sensor value: %d", hum_raw);
-    // float soil_hum = (1024-moi)/1024.0*100; // as it is mapped to 0 to 1024,
-    // like that we get the percentage
     float soil_hum =
         (4095 - hum_raw + hum_offset) / 4095.0 *
         100;  // as it is mapped to 0 to 4095, like that we get the percentage
@@ -303,6 +316,7 @@ void loop() {
             if (!client.connected() && WiFi.status() == WL_CONNECTED) {
                 reconnect();
             }
+            
             client.publish(
                 (sensor_topic + "/Watered").c_str(),
                 ("WATERED,site=" + sensor_location + " value=" + String(1))
@@ -328,7 +342,5 @@ void loop() {
         log_i("MQTT Publish Woke up too early");
         delay(300);
     }
-
-    setSleepTime();
-    goToDeepSleep();
+    goToDeepSleep(setSleepTime());
 }
