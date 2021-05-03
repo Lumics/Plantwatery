@@ -36,7 +36,7 @@ const char* timeZone = "CET-1CEST,M3.5.0,M10.5.0/3";
 
 // watering time
 const int watering_hour_am = 8;       // 8 am
-const int watering_hour_pm = 21;      // 8 pm
+const int watering_hour_pm = 20;      // 8 pm
 const int watering_time = 30 * 1000;  // in mili seconds
 
 // *** Hardware Definitions ***
@@ -70,7 +70,6 @@ String device_name = "esp32_plantwatery";
 int wifi_setup_timer = 0;
 
 
-
 void setup_wifi() {
     char ssid1[30];
     char pass1[30];
@@ -96,7 +95,7 @@ void setup_wifi() {
 
 void goToDeepSleep(uint64_t sleepTime_sec) {
     // testing
-    //sleepTimeS = 60;
+    // sleepTime_sec = 30;
     log_i("Going to sleep for %d seconds", sleepTime_sec);
     client.disconnect();
     delay(300);
@@ -159,7 +158,7 @@ void setTimeZone() {
     configTime(0, 0, ntpServer);
     delay(100);
     setenv("TZ", timeZone, 1);
-    delay(100);
+    delay(200);
 }
 
 bool isTimeToWater() {
@@ -171,15 +170,21 @@ bool isTimeToWater() {
 
     if (curr_time.tm_hour != watering_hour_am &&
         curr_time.tm_hour != watering_hour_pm) {
-        log_i("don't water yet it's only %s", strftime_buf);
+        log_i("Don't water yet it's only %s", strftime_buf);
+        return false;
+    } else if (curr_time.tm_mday == last_watering_time.tm_mday && curr_time.tm_hour == last_watering_time.tm_hour)
+    {
+      strftime(strftime_buf, sizeof(strftime_buf), "%c", &last_watering_time);
+      log_i("Just watered at %s, go back to sleep", strftime_buf);
         return false;
     }
-    log_i("it's time to water the plants");
+    
+    log_i("It's time to water the plants");
     return true;
 }
 
-int setSleepTime() {
-    int sleepTimeS = 29000;  // define standard as about 8h 
+uint64_t setSleepTime() {
+    uint64_t sleepTimeS = 43000;  // define standard as about 12h 
     time(&now);
     struct tm curr_time;
     localtime_r(&now, &curr_time);
@@ -211,7 +216,7 @@ int setSleepTime() {
         log_i("Time to water in the morning: %s", strftime_buf);
     }
 
-    sleepTimeS = (int)seconds;
+    sleepTimeS = (uint64_t)seconds;
     log_i("Set sleep time to %d [s]", sleepTimeS);
     return sleepTimeS;
 }
