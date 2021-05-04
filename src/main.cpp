@@ -48,8 +48,8 @@ const char* ntpServer = "de.pool.ntp.org";
 const char* timeZone = "CET-1CEST,M3.5.0,M10.5.0/3";
 
 // watering time
-const int watering_hour_am = 07;       // 8 am
-const int watering_hour_pm = 19;      // 8 pm
+const int watering_hour_am = 07;       // 7 am
+const int watering_hour_pm = 19;      // 7 pm
 const int watering_time = 60 * 1000;  // in mili seconds
 
 // *** Hardware Definitions ***

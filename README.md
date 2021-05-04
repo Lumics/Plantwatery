@@ -69,7 +69,7 @@ The tubes were connected to the pump and then placed between the plants. We used
 ## Code
 <img src="images/code_parameters.png" width="800">
 
-To code is written for the Arduino framework with the PLatformIo IDE. PLease make sure to add a file called: "credentials.h" to the src folder (copy and rename the credentials_example.h and fill in the details). If you do not have a OTA server you can just leave the URL like it is or remove everything with OTA from the code. 
+To code is written for the Arduino framework with the PlatformIo IDE. Please make sure to add a file called: "credentials.h" to the src folder (copy and rename the credentials_example.h and fill in the details). If you do not have a OTA server you can just leave the URL like it is or remove everything with OTA from the code. 
 
 Make sure to change the hum_threshold, hum_offset and the watering times according to your needs.
 
