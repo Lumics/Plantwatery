@@ -59,6 +59,8 @@ Here is a quick sketch of the electronics components. It should be straight forw
 
 <img src="images/sketch.jpg" width="800">
 
+The drawings for the casing for all parts can be found in the folder: housing.
+
 ## Watering system
 
 The tubes were connected to the pump and then placed between the plants. We used a Y connector to go to all plants and always have a small tube which has some self made small holes at the spots where it should water the plants. Therefore, we only have to change the tubes with the holes, if we rearrange the plants or want suddendly smaller holes.
