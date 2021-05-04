@@ -9,6 +9,12 @@
 #include <esp_sleep.h>
 #include <esp_wifi.h>
 
+
+//OTA
+#include <HTTPClient.h>
+#include <ESP32httpUpdate.h>
+
+
 // load Wifi credentials
 #include "credentials.h"
 
@@ -23,21 +29,28 @@ String ssid = WIFI_SSID;             // CHANGE (WiFi Name)
 String pwd = WIFI_PASSWD;            // CHANGE (WiFi password)
 String sensor_location = "balcony";  // define sensor location
 
+#define sw_version 007 // Define Software Version
+
 // sensor settings
-const int hum_threshold = 75;  // In percentage, If soil humidity under
+const int hum_threshold = 70;  // In percentage, If soil humidity under
                                // hum_threshold it will trigger the watering
 const int hum_offset =
     1300;  // define humidity offset in raw ticks, measure by puting sensor into
            // water and take this raw value as offset
+
+// OTA managment
+const char* fwUrlBase = URL_to_Update_Server; // OTA URL
+bool new_update_available = false;
+
 
 // timezone management
 const char* ntpServer = "de.pool.ntp.org";
 const char* timeZone = "CET-1CEST,M3.5.0,M10.5.0/3";
 
 // watering time
-const int watering_hour_am = 8;       // 8 am
-const int watering_hour_pm = 20;      // 8 pm
-const int watering_time = 30 * 1000;  // in mili seconds
+const int watering_hour_am = 07;       // 8 am
+const int watering_hour_pm = 19;      // 8 pm
+const int watering_time = 60 * 1000;  // in mili seconds
 
 // *** Hardware Definitions ***
 #define Pin_pump 32         // define wemos pin for triggering pump
@@ -91,6 +104,58 @@ void setup_wifi() {
     Serial.println("");
     log_i("WiFi connected");
     log_i("IP address: %d", WiFi.localIP());
+}
+
+void check_for_OTA(){
+  new_update_available = false;  
+  String fwURL = String( fwUrlBase );
+  String fwVersionURL = fwURL;
+  fwVersionURL.concat( "firmware.version" );
+
+  log_i( "Checking for firmware updates." );
+  log_i( "Firmware version URL: %s ", fwVersionURL);
+
+  HTTPClient httpClient;
+  httpClient.begin( fwVersionURL );
+  int httpCode = httpClient.GET();
+  if( httpCode == 200 ) {
+    String newFWVersion = httpClient.getString();
+
+    log_i( "Current firmware version: %d", sw_version );
+    log_i( "Available firmware version: %s", newFWVersion );
+
+    int newVersion = newFWVersion.toInt();
+
+    if( newVersion > sw_version ) {
+        new_update_available = true;
+      log_i( "Preparing to update" );
+
+      String fwImageURL = fwURL;
+      fwImageURL.concat( "firmware.bin" );
+      t_httpUpdate_return ret = ESPhttpUpdate.update( fwImageURL );
+
+      switch(ret) {
+        case HTTP_UPDATE_FAILED:
+          log_i("HTTP_UPDATE_FAILD Error (%d): %s", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
+          break;
+
+        case HTTP_UPDATE_NO_UPDATES:
+          log_i("HTTP_UPDATE_NO_UPDATES");
+          break;
+
+        case HTTP_UPDATE_OK:
+          log_i("HTTP_UPDATE_OK");
+          break;
+      }
+    }
+    else {
+      log_i( "Already on latest version" );
+    }
+  }
+  else {
+    log_i( "Firmware version check failed, got HTTP response code %d", httpCode );
+  }
+  httpClient.end();
 }
 
 void goToDeepSleep(uint64_t sleepTime_sec) {
@@ -217,6 +282,7 @@ uint64_t setSleepTime() {
     }
 
     sleepTimeS = (uint64_t)seconds;
+    //sleepTimeS = (uint64_t) 900; // to debug, wake up every 15min
     log_i("Set sleep time to %d [s]", sleepTimeS);
     return sleepTimeS;
 }
@@ -284,9 +350,10 @@ void setup() {
     setTimeZone();
     printLocalTime();
     log_i("Setup done.");
-}
 
-void loop() {
+
+    // One time Execution before deep sleep, therefore not in the loop
+
     if (!client.connected() && WiFi.status() == WL_CONNECTED) {
         reconnect();
     }
@@ -308,6 +375,11 @@ void loop() {
         ("SOIL_RH,site=" + sensor_location + " value=" + String(soil_hum))
             .c_str(),
         false);
+    client.publish(
+            (sensor_topic + "/SoftwareVS").c_str(),
+            ("SoftwareVS,site=" + sensor_location + " value=" + String(sw_version)).c_str(),
+            false);
+        log_i("MQTT Published Soil RH and SoftwareVersion: %d", sw_version);
     delay(100);
 
     if (isTimeToWater()) {
@@ -347,5 +419,15 @@ void loop() {
         log_i("MQTT Publish Woke up too early");
         delay(300);
     }
+    
+    if (!client.connected() && WiFi.status() == WL_CONNECTED) {
+        reconnect();
+    }
+    client.loop();
+    check_for_OTA();
     goToDeepSleep(setSleepTime());
+}
+
+void loop() {
+// not used due to deep slep
 }
