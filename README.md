@@ -6,10 +6,20 @@ A project of Anna Dai and Maurin Widmer.
 
 ## Summary
 
-Plantwatery is an automated watering system for your garden plants. It is based on an ESP32, a capacitive soil moisture sensor, solar cell & battery and a water pump. The system is autonomous and measures twice per day the soil moisture and operates the pump if needed. It's collected data and status is send via Wifi (MQTT protocol) to the cloud. All parts can easily be bought and the case is 3D printied (drawings are provided). The plastic housing is constructed to protect it's inner electronic parts from water and makes it easy to attach the solar panel, water pump and soil sensor.
+Plantwatery is an automated watering system for your garden plants. It is based on an ESP32, a capacitive soil moisture sensor, solar cell & battery and a water pump. The system is autonomous and measures twice per day the soil moisture and operates the pump if needed. It's collected data and status is send via Wifi (MQTT protocol) to the cloud. All parts can easily be bought and the case is 3D printed (drawings are provided). The plastic housing is constructed to protect it's inner electronic parts from water and makes it easy to attach the solar panel, water pump and soil sensor.
 
-The code is written with the Arduino framework and can easily be attapted to other platforms. 
+The code is written with the Arduino framework and can easily be adapted to other platforms. 
 It allows to change watering time & hours of the day, soil sensor offset and MQTT topics. Furthermore, the code automatically checks if a new version is online and updates itself if there is (for example because you want to change some parameters like soil sensor offset or watering time). 
+
+## Changelog
+
+### Version 9
+Updated Version from 31.12.2022 includes:
+* a LDO and capacitors in the electronics. Furthermore the standard ESP32 is used to further save battery power (no LED). Sketch is updated accordingly.
+* Updated code with more reliable computing of how many seconds are needed until ESP32 needs to wake up to water the plants.
+
+### Version 8
+Inital Version
 
 ## Hardware
 
@@ -18,12 +28,15 @@ It allows to change watering time & hours of the day, soil sensor offset and MQT
 In the following you have a list of suggestions of parts you need to build this project. 
 
 ### Control unit:
-* Microcontroller (I know that there are better ESP32 for low power applications than the TTGO T-Display but I really like the board and had just this one available with a battery connector): [ESP32 with battery connector](https://www.aliexpress.com/item/33048962331.html?spm=a2g0o.productlist.0.0.b58c2c098F7mfN&algo_pvid=9a81adc2-ce0c-47bb-a4dd-71a462476a64&algo_expid=9a81adc2-ce0c-47bb-a4dd-71a462476a64-10&btsid=0bb0623f16201391171217936ea511&ws_ab_test=searchweb0_0,searchweb201602_,searchweb201603_)
-* Relay or Mosfet to control pump: [IRF520N Mosfet board](https://www.aliexpress.com/item/4000522397541.html?spm=a2g0o.productlist.0.0.65f26e63slLK2D&algo_pvid=0c848908-41f4-49be-a38d-7ed1e34a9059&algo_expid=0c848908-41f4-49be-a38d-7ed1e34a9059-0&btsid=0b0a556816201292746752554e52cc&ws_ab_test=searchweb0_0,searchweb201602_,searchweb201603_)
+* Microcontroller [ESP32 devkit](https://www.aliexpress.com/item/33048962331.html?spm=a2g0o.productlist.0.0.b58c2c098F7mfN&algo_pvid=9a81adc2-ce0c-47bb-a4dd-71a462476a64&algo_expid=9a81adc2-ce0c-47bb-a4dd-71a462476a64-10&btsid=0bb0623f16201391171217936ea511&ws_ab_test=searchweb0_0,searchweb201602_,searchweb201603_)
+* Relay or Mosfet to control pump: [IRF520N Mosfet board](https://www.aliexpress.us/item/3256802178204101.html?spm=a2g0o.productlist.main.1.1a5f6302i3YTji&algo_pvid=0ce5794c-42fb-4e36-aaa8-a5433be1a823&algo_exp_id=0ce5794c-42fb-4e36-aaa8-a5433be1a823-0&pdp_ext_f=%7B%22sku_id%22%3A%2212000020329525170%22%7D&pdp_npi=2%40dis%21USD%210.56%210.48%21%21%21%21%21%40214527c616724085337403087d074b%2112000020329525170%21sea&curPageLogUid=xEbJenuVJ6Sc)
 * Battery Management Board: [TP4056](https://www.aliexpress.com/item/4000522397541.html?spm=a2g0o.productlist.0.0.de4b58c9qydgt6&algo_pvid=69905307-5800-4be5-9b2b-80f6b985bcc4&algo_expid=69905307-5800-4be5-9b2b-80f6b985bcc4-0&btsid=0bb0623a16201391745902844e4ca4&ws_ab_test=searchweb0_0,searchweb201602_,searchweb201603_)
 * Battery holder: [18650 Case](https://www.aliexpress.com/item/1005001707889794.html?spm=a2g0o.productlist.0.0.1e6d1e3dfwBJik&algo_pvid=513f1515-1784-40b9-8499-b16564c27130&algo_expid=513f1515-1784-40b9-8499-b16564c27130-0&btsid=0b0a557016201391231408758e1076&ws_ab_test=searchweb0_0,searchweb201602_,searchweb201603_)
 * Battery: [18650 Lithium Rechargeable Battery 3.7V](https://www.aliexpress.com/item/32324914059.html?spm=a2g0o.productlist.0.0.27c22142u1oYY9&algo_pvid=61708288-d49a-48cc-b7a1-7b9bbae778fb&algo_expid=61708288-d49a-48cc-b7a1-7b9bbae778fb-1&btsid=0b0a555316201390081524110edf99&ws_ab_test=searchweb0_0,searchweb201602_,searchweb201603_)
 * PCB Prototype board to solder the wires together and add the connectors: [PCB Prototype Board](https://www.aliexpress.com/item/32588853051.html?spm=a2g0o.productlist.0.0.690f190cdSvO5x&algo_pvid=8745a321-eece-4b08-916e-bb816e874ff8&algo_expid=8745a321-eece-4b08-916e-bb816e874ff8-0&btsid=0b0a555916201387423844532e53c2&ws_ab_test=searchweb0_0,searchweb201602_,searchweb201603_)
+* Low voltage regulator: [LDO MCP1700-3302E](https://www.aliexpress.us/item/3256801422024433.html?spm=a2g0o.productlist.main.1.36911b92jKyL4d&algo_pvid=d1c0d471-dfcf-43ca-8115-c3d36c94d9e4&algo_exp_id=d1c0d471-dfcf-43ca-8115-c3d36c94d9e4-0&pdp_ext_f=%7B%22sku_id%22%3A%2212000016784495251%22%7D&pdp_npi=2%40dis%21USD%211.52%211.34%21%21%21%21%21%402100b18f16724500165956045d0780%2112000016784495251%21sea&curPageLogUid=KMySLVfZFq7C)
+* Resistor: [27kOhm](https://www.aliexpress.us/item/2251832772049066.html?spm=a2g0o.productlist.main.1.71c77d8d4A7UNG&algo_pvid=6bcbae55-44a1-4079-8918-2374451c9662&algo_exp_id=6bcbae55-44a1-4079-8918-2374451c9662-0&pdp_ext_f=%7B%22sku_id%22%3A%2266355447606%22%7D&pdp_npi=2%40dis%21USD%210.59%210.5%21%21%21%21%21%402145288516724502803332305d073e%2166355447606%21sea&curPageLogUid=gIoRhM2fTH1P) and [100kOhm](https://www.aliexpress.us/item/2251832772049066.html?spm=a2g0o.productlist.main.1.71c77d8d4A7UNG&algo_pvid=6bcbae55-44a1-4079-8918-2374451c9662&algo_exp_id=6bcbae55-44a1-4079-8918-2374451c9662-0&pdp_ext_f=%7B%22sku_id%22%3A%2266355447606%22%7D&pdp_npi=2%40dis%21USD%210.59%210.5%21%21%21%21%21%402145288516724502803332305d073e%2166355447606%21sea&curPageLogUid=gIoRhM2fTH1P)
+* Capacitor: [100uF](https://www.aliexpress.us/item/3256801889213205.html?spm=a2g0o.productlist.main.1.4b4a6bb7ffWzer&algo_pvid=dee6cb8c-09f9-4563-9b9a-3f3f717e9aa4&aem_p4p_detail=20221230173205893251182205860014403663&algo_exp_id=dee6cb8c-09f9-4563-9b9a-3f3f717e9aa4-0&pdp_ext_f=%7B%22sku_id%22%3A%2212000018654903102%22%7D&pdp_npi=2%40dis%21USD%211.27%211.13%21%21%21%21%21%402100bb6416724503250692932d075a%2112000018654903102%21sea&curPageLogUid=1WnkREr9rsM0&ad_pvid=20221230173205893251182205860014403663_1&ad_pvid=20221230173205893251182205860014403663_1) and [100nF](https://www.aliexpress.us/item/3256802138966377.html?spm=a2g0o.productlist.main.9.4b4a6bb7ffWzer&algo_pvid=dee6cb8c-09f9-4563-9b9a-3f3f717e9aa4&aem_p4p_detail=20221230173205893251182205860014403663&algo_exp_id=dee6cb8c-09f9-4563-9b9a-3f3f717e9aa4-4&pdp_ext_f=%7B%22sku_id%22%3A%2212000020096495156%22%7D&pdp_npi=2%40dis%21USD%210.91%210.91%21%21%21%21%21%402100bb6416724503250692932d075a%2112000020096495156%21sea&curPageLogUid=Zhi2z3cmokft&ad_pvid=20221230173205893251182205860014403663_5&ad_pvid=20221230173205893251182205860014403663_5)
 * Cable connector: [PCB Screw Terminal](https://www.aliexpress.com/item/1000006518504.html?spm=a2g0o.productlist.0.0.753553808svNSN&algo_pvid=null&algo_expid=null&btsid=0b0a556216201400093754778e0179&ws_ab_test=searchweb0_0,searchweb201602_,searchweb201603_)
 * Jumper cables: [Dupont Jumper Wire](https://www.aliexpress.com/item/32911287776.html?spm=a2g0o.detail.0.0.7f875552q3YbrB&gps-id=pcDetailBottomMoreThisSeller&scm=1007.13339.169870.0&scm_id=1007.13339.169870.0&scm-url=1007.13339.169870.0&pvid=9e77f922-b1ed-43af-a189-ed38dffac609&_t=gps-id:pcDetailBottomMoreThisSeller,scm-url:1007.13339.169870.0,pvid:9e77f922-b1ed-43af-a189-ed38dffac609,tpp_buckets:668%230%23131923%2362_668%230%23131923%2362_668%23888%233325%235_668%23888%233325%235_668%232846%238110%231995_668%235811%2327182%2353_668%232717%237560%23222_668%231000022185%231000066059%230_668%233468%2315608%23187_668%232846%238110%231995_668%235811%2327182%2353_668%232717%237560%23222_668%233164%239976%23952_668%233468%2315608%23187)
 and some [longer cables](https://www.aliexpress.com/item/4000009001537.html?spm=a2g0o.productlist.0.0.5fd4257fB5iarJ&algo_pvid=1c5f1618-e462-4103-8249-88205578790c&algo_expid=1c5f1618-e462-4103-8249-88205578790c-0&btsid=0b0a555516201388513911642e8ba7&ws_ab_test=searchweb0_0,searchweb201602_,searchweb201603_)
@@ -53,23 +66,23 @@ and some [longer cables](https://www.aliexpress.com/item/4000009001537.html?spm=
 
 <img src="images/plantwatery-2.jpg" width="800">
 
-## Electronics
+## Electronics / Sketch
 
-Here is a quick sketch of the electronics components. It should be straight forward. Be ware that we combined common signals on the PCB and made it easy to attach the peripherals (not shown in sketch).
+Here you can find a sketch of the wiring for the electronic components. It should be straight forward. I recommend to use some screw terminals to attach the longer wires of the external humidity sensor, pump and solar cell (compare image). Moreover, make sure to add the low voltage regulator as shown in the sketch. This makes sure that the esp32 works at 3.3V. Additionaly, the added capacitors help to smoothen out the supply voltage from potential voltage spikes. 
 
-<img src="images/sketch.jpg" width="800">
+<img src="images/wiring.png" width="800">
 
 The drawings for the casing for all parts can be found in the folder: housing.
 
 ## Watering system
 
-The tubes were connected to the pump and then placed between the plants. We used a Y connector to go to all plants and always have a small tube which has some self made small holes at the spots where it should water the plants. Therefore, we only have to change the tubes with the holes, if we rearrange the plants or want suddendly smaller holes.
+The tubes were connected to the pump and then placed between the plants. We used a Y connector to go to all plants and always have a small tube which has some self made small holes at the spots where it should water the plants. Therefore, we only have to change the tubes with the holes, if we rearrange the plants or want suddenly smaller holes.
 
 
 ## Code
 <img src="images/code_parameters.png" width="800">
 
-To code is written for the Arduino framework with the PlatformIo IDE. Please make sure to add a file called: "credentials.h" to the src folder (copy and rename the credentials_example.h and fill in the details). If you do not have a OTA server you can just leave the URL like it is or remove everything with OTA from the code. 
+To code is written for the Arduino framework with the PlatformIo IDE. Please make sure to add a file called: "config.h" to the src folder (copy and rename the config_example.h and fill in the details). If you do not have a OTA server you can just leave the URL like it is or remove everything with OTA from the code. 
 
 Make sure to change the hum_threshold, hum_offset and the watering times according to your needs.
 

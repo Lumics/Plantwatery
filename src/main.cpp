@@ -16,45 +16,43 @@
 
 
 // load Wifi credentials
-#include "credentials.h"
+#include "config.h"
 
 /**********************************************************************************************/
-#define mqtt_server "lumicsraspi4"  // CHANGE MQTT Broker address
-#define mqtt_user \
-    "your_username"  // not used, make a change in the mqtt initializer
-#define mqtt_password \
-    "your_password"  // not used, make a change in the mqtt initializer
-
+const char* mqtt_server = MQTT_SERVER; //CHANGE MQTT Broker address
+uint16_t mqtt_port = MQTT_PORT; // define MQTT port
+String mqtt_user = MQTT_USER; //not used, make a change in the mqtt initializer
+String mqtt_password = MQTT_PASSWORD; //not used, make a change in the mqtt initializer
 String ssid = WIFI_SSID;             // CHANGE (WiFi Name)
 String pwd = WIFI_PASSWD;            // CHANGE (WiFi password)
-String sensor_location = "balcony";  // define sensor location
+String sensor_location = LOCATION; // define sensor location
 
-#define sw_version 007 // Define Software Version
+#define sw_version 9 // Define Software Version
 
 // sensor settings
-const int hum_threshold = 70;  // In percentage, If soil humidity under
-                               // hum_threshold it will trigger the watering
-const int hum_offset =
-    1300;  // define humidity offset in raw ticks, measure by puting sensor into
-           // water and take this raw value as offset
+const int hum_threshold = 70; // In percentage, If soil humidity under
+                              // hum_threshold it will trigger the watering
+const int hum_offset = 1300;  // define humidity offset in raw ticks, measure by putting
+                              // sensor into water and take this raw value as offset
 
-// OTA managment
+// OTA management
 const char* fwUrlBase = URL_to_Update_Server; // OTA URL
 bool new_update_available = false;
 
 
 // timezone management
-const char* ntpServer = "de.pool.ntp.org";
+const char* ntpServer = "pool.ntp.org";
 const char* timeZone = "CET-1CEST,M3.5.0,M10.5.0/3";
 
 // watering time
-const int watering_hour_am = 07;       // 7 am
+const int watering_hour_am = 7;       // 7 am
 const int watering_hour_pm = 19;      // 7 pm
-const int watering_time = 60 * 1000;  // in mili seconds
+const int watering_time = 120 * 1000;  // in milli seconds
 
 // *** Hardware Definitions ***
-#define Pin_pump 32         // define wemos pin for triggering pump
-#define Pin_humi_sensor 33  // define analog pin to read from humidity sensor
+#define Pin_pump 33         // define esp pin for triggering pump
+#define Pin_humi_sensor 35  // define analog pin to read from humidity sensor
+#define Pin_voltage_divider 32  // define analog pin to read from voltage divider for battery voltage
 // when wifi active only ADC1 available GPIO32 - GPIO39
 
 
@@ -62,10 +60,8 @@ uint64_t uS_TO_S_FACTOR = 1000000; //Conversion factor for micro seconds to seco
 #define wifi_timeout 5000L  // 5 seconds in milliseconds
 
 // *** persistent data ***
-RTC_DATA_ATTR int bootCount =
-    0;  // Boot count should be stored in the non volatile RTC Memory
-RTC_DATA_ATTR struct tm
-    last_watering_time;  // Parameters see:
+RTC_DATA_ATTR int bootCount = 0;  // Boot count should be stored in the non volatile RTC Memory
+RTC_DATA_ATTR struct tm last_watering_time;  // Parameters see:
                          // http://www.cplusplus.com/reference/ctime/tm/
 RTC_DATA_ATTR time_t now;
 
@@ -78,7 +74,7 @@ String MAC_ADDRESS;
 WiFiClient espClient;
 PubSubClient client(espClient);
 String sensor_topic = "sensors/soil";
-String device_type = "Arduino";
+String device_type = "ESP32";
 String device_name = "esp32_plantwatery";
 int wifi_setup_timer = 0;
 
@@ -103,7 +99,7 @@ void setup_wifi() {
     }
     Serial.println("");
     log_i("WiFi connected");
-    log_i("IP address: %d", WiFi.localIP());
+    log_i("IP address: %s", WiFi.localIP().toString());
 }
 
 void check_for_OTA(){
@@ -161,7 +157,7 @@ void check_for_OTA(){
 void goToDeepSleep(uint64_t sleepTime_sec) {
     // testing
     // sleepTime_sec = 30;
-    log_i("Going to sleep for %d seconds", sleepTime_sec);
+    log_i("Going to sleep for %f seconds", (double)sleepTime_sec);
     client.disconnect();
     delay(300);
     WiFi.disconnect(true);
@@ -220,10 +216,17 @@ void print_wakeup_reason() {
 }
 
 void setTimeZone() {
+    struct tm timeinfo;
     configTime(0, 0, ntpServer);
+    if(!getLocalTime(&timeinfo)){
+        log_e("Failed to obtain time");
+    } else {
+        log_i("Got the time from the NTP Server");
+    }
     delay(100);
     setenv("TZ", timeZone, 1);
     delay(200);
+    tzset();
 }
 
 bool isTimeToWater() {
@@ -267,8 +270,21 @@ uint64_t setSleepTime() {
         evening.tm_min = 0;
         evening.tm_sec = 0;
         seconds = difftime(mktime(&evening), now);
+        log_i("%f seconds until next watering from now", seconds);
         strftime(strftime_buf, sizeof(strftime_buf), "%c", &evening);
         log_i("Time to water in the evening: %s", strftime_buf);
+    } else if (curr_time.tm_hour >= 0 &&
+        curr_time.tm_hour < watering_hour_am) {
+        // compute watering time between midnight and morning of the same day
+        struct tm early_morning;
+        localtime_r(&now, &early_morning);
+        early_morning.tm_hour = watering_hour_am;
+        early_morning.tm_min = 0;
+        early_morning.tm_sec = 0;
+        seconds = difftime(mktime(&early_morning), now);
+        log_i("%f seconds until next watering from now", seconds);
+        strftime(strftime_buf, sizeof(strftime_buf), "%c", &early_morning);
+        log_i("Time to water in the morning: %s", strftime_buf);
     } else {
         struct tm morning;
         localtime_r(&now, &morning);
@@ -277,13 +293,14 @@ uint64_t setSleepTime() {
         morning.tm_sec = 0;
         morning.tm_mday = curr_time.tm_mday + 1;  // next day
         seconds = difftime(mktime(&morning), now);
+        log_i("%f seconds until next watering from now", seconds);
         strftime(strftime_buf, sizeof(strftime_buf), "%c", &morning);
         log_i("Time to water in the morning: %s", strftime_buf);
     }
 
     sleepTimeS = (uint64_t)seconds;
     //sleepTimeS = (uint64_t) 900; // to debug, wake up every 15min
-    log_i("Set sleep time to %d [s]", sleepTimeS);
+    log_i("Set sleep time to %f [s]", (double)sleepTimeS);
     return sleepTimeS;
 }
 
@@ -313,7 +330,7 @@ void setLastWateringTime() {
 
 // Reconnect to the MQTT server
 void reconnect() {
-    // keep track of when we started our attemtp to get a wifi connection
+    // keep track of when we started our attempt to get a wifi connection
     unsigned long startAttemptTime = millis();
     while (!client.connected() && millis() - startAttemptTime < wifi_timeout) {
         log_i("Attempting MQTT connection...");
@@ -326,6 +343,12 @@ void reconnect() {
             delay(100);
         }
     }
+}
+
+float measure_battery_level() {
+    float batteryLevel = map(analogRead(Pin_voltage_divider), 0.0f, 4095.0f, 0, 100);
+    log_i("Battery level measured is: %f", batteryLevel);
+    return batteryLevel;
 }
 
 void setup() {
@@ -353,7 +376,6 @@ void setup() {
 
 
     // One time Execution before deep sleep, therefore not in the loop
-
     if (!client.connected() && WiFi.status() == WL_CONNECTED) {
         reconnect();
     }
@@ -366,9 +388,7 @@ void setup() {
 
     hum_raw = analogRead(Pin_humi_sensor);
     log_i("Raw Soil Sensor value: %d", hum_raw);
-    float soil_hum =
-        (4095 - hum_raw + hum_offset) / 4095.0 *
-        100;  // as it is mapped to 0 to 4095, like that we get the percentage
+    float soil_hum = map(hum_raw, hum_offset, 4095.0f, 0, 100);
     log_i("Moisture: %.1f %%", soil_hum);
     client.publish(
         (sensor_topic + "/Humidity").c_str(),
@@ -376,10 +396,14 @@ void setup() {
             .c_str(),
         false);
     client.publish(
+        (sensor_topic + "/BatteryVoltage").c_str(),
+        ("BatteryVoltage,site=" + sensor_location + " value=" + String(measure_battery_level())).c_str(),
+        false);
+    client.publish(
             (sensor_topic + "/SoftwareVS").c_str(),
             ("SoftwareVS,site=" + sensor_location + " value=" + String(sw_version)).c_str(),
             false);
-        log_i("MQTT Published Soil RH and SoftwareVersion: %d", sw_version);
+    log_i("MQTT Published Soil RH, Battery Voltage and Software Version: %d", sw_version);
     delay(100);
 
     if (isTimeToWater()) {
@@ -429,5 +453,5 @@ void setup() {
 }
 
 void loop() {
-// not used due to deep slep
+// not used due to deep sleep
 }
