@@ -21,6 +21,7 @@ Updated Version from 31.12.2022 includes:
 ### Version 8
 Inital Version
 
+
 ## Hardware
 
 <img src="images/plantwatery-6.jpg" width="800">
@@ -66,6 +67,15 @@ and some [longer cables](https://www.aliexpress.com/item/4000009001537.html?spm=
 
 <img src="images/plantwatery-2.jpg" width="800">
 
+(Picture above showing Plantwatery version 8)
+
+
+
+
+<img src="images/plantwatery_v9.jpg" width="800">
+
+(Picture above showing Plantwatery version 9, see changelog)
+
 ## Electronics / Sketch
 
 Here you can find a sketch of the wiring for the electronic components. It should be straight forward. I recommend to use some screw terminals to attach the longer wires of the external humidity sensor, pump and solar cell (compare image). Moreover, make sure to add the low voltage regulator as shown in the sketch. This makes sure that the esp32 works at 3.3V. Additionaly, the added capacitors help to smoothen out the supply voltage from potential voltage spikes. 
@@ -89,3 +99,12 @@ Make sure to change the hum_threshold, hum_offset and the watering times accordi
 <img src="images/plantwatery-3.jpg" width="800">
 
 Have fun with the project and let us know if you have a question or if you build this. 
+
+## ToDo 
+
+### Further power improvement suggestion to investigate incase the kit uses too much power to recharge via solar cell
+* Either switch the ESP32 devkit board with a board without the CP2102, regulator and power LED
+* Scrap the power LED to get approx another 2mA power saving 
+* Increase amount of solar cell and put them in series
+
+<img src="images/plantwatery_v9-2.jpg" width="800">

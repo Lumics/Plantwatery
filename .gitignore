@@ -4,4 +4,4 @@
 
 *.SLDPRT
 
-src/credentials.h
+src/config.h
