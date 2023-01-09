@@ -27,7 +27,7 @@ String ssid = WIFI_SSID;             // CHANGE (WiFi Name)
 String pwd = WIFI_PASSWD;            // CHANGE (WiFi password)
 String sensor_location = LOCATION; // define sensor location
 
-#define sw_version 9 // Define Software Version
+#define sw_version 10 // Define Software Version
 
 // sensor settings
 const int hum_threshold = 70; // In percentage, If soil humidity under
@@ -236,19 +236,18 @@ bool isTimeToWater() {
     char strftime_buf[64];
     strftime(strftime_buf, sizeof(strftime_buf), "%c", &curr_time);
 
-    if (curr_time.tm_hour != watering_hour_am &&
-        curr_time.tm_hour != watering_hour_pm) {
-        log_i("Don't water yet it's only %s", strftime_buf);
-        return false;
-    } else if (curr_time.tm_mday == last_watering_time.tm_mday && curr_time.tm_hour == last_watering_time.tm_hour)
-    {
+    if (curr_time.tm_mday == last_watering_time.tm_mday && 
+                curr_time.tm_hour == last_watering_time.tm_hour){
       strftime(strftime_buf, sizeof(strftime_buf), "%c", &last_watering_time);
       log_i("Just watered at %s, go back to sleep", strftime_buf);
         return false;
-    }
-    
-    log_i("It's time to water the plants");
-    return true;
+    } else if (curr_time.tm_hour == watering_hour_am ||
+        curr_time.tm_hour == watering_hour_pm) {
+        log_i("It's time to water the plants");
+        return true;
+    } 
+    log_i("Don't water yet it's only %s", strftime_buf);
+    return false;
 }
 
 uint64_t setSleepTime() {
@@ -297,9 +296,9 @@ uint64_t setSleepTime() {
         strftime(strftime_buf, sizeof(strftime_buf), "%c", &morning);
         log_i("Time to water in the morning: %s", strftime_buf);
     }
-
+ 
     sleepTimeS = (uint64_t)seconds;
-    //sleepTimeS = (uint64_t) 900; // to debug, wake up every 15min
+    //sleepTimeS = (uint64_t) 300; // to debug, wake up every 5min
     log_i("Set sleep time to %f [s]", (double)sleepTimeS);
     return sleepTimeS;
 }
@@ -352,6 +351,7 @@ float measure_battery_level() {
 }
 
 void setup() {
+    delay(200); //Helps with common issue that ESP32 is not waking up after deep sleep 
     Serial.begin(115200);
     pinMode(Pin_pump, OUTPUT);
 
@@ -432,7 +432,7 @@ void setup() {
                 ("WATERED,site=" + sensor_location + " value=" + String(0))
                     .c_str(),
                 false);
-            log_i("MQTT Publish too humid");
+            log_i("MQTT Publish too humid, did not water plant");
             delay(300);
         }
     } else {

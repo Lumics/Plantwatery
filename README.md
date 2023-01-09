@@ -106,5 +106,7 @@ Have fun with the project and let us know if you have a question or if you build
 * Either switch the ESP32 devkit board with a board without the CP2102, regulator and power LED
 * Scrap the power LED to get approx another 2mA power saving 
 * Increase amount of solar cell and put them in series
+* Add an Resistor to the TP4056 as shown in the video of [Andreas Spiess](https://www.youtube.com/watch?v=37kGva3NW8w)
+* Try to use a different board lige TTGO T18 with many components integrated
 
 <img src="images/plantwatery_v9-2.jpg" width="800">
