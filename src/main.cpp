@@ -32,7 +32,7 @@ String sensor_location = LOCATION; // define sensor location
 // sensor settings
 const int hum_threshold = 70; // In percentage, If soil humidity under
                               // hum_threshold it will trigger the watering
-const int hum_offset = 1300;  // define humidity offset in raw ticks, measure by putting
+const int hum_offset = 1071;  // define humidity offset in raw ticks, measure by putting
                               // sensor into water and take this raw value as offset
 
 // OTA management
@@ -388,7 +388,7 @@ void setup() {
 
     hum_raw = analogRead(Pin_humi_sensor);
     log_i("Raw Soil Sensor value: %d", hum_raw);
-    float soil_hum = map(hum_raw, hum_offset, 4095.0f, 0, 100);
+    float soil_hum = map(hum_raw, hum_offset, 4095.0f, 100, 0);
     log_i("Moisture: %.1f %%", soil_hum);
     client.publish(
         (sensor_topic + "/Humidity").c_str(),
