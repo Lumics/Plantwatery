@@ -13,6 +13,13 @@ It allows to change watering time & hours of the day, soil sensor offset and MQT
 
 ## Changelog
 
+### Version 12
+Updated Version June 2024
+* Adding a TPS61023 from Adafruit for a stable boost from 3.7V to 5V. This helps to make the usage of the ESP32 much more reliable if the voltage dropped
+* Bug fixes to improve deep sleep cycle
+* Improved battery monitor output
+* Improved Hum reading and new wiring to ESP32 directly for power to decrease power flowing through sensor over time
+
 ### Version 9
 Updated Version from 31.12.2022 includes:
 * a LDO and capacitors in the electronics. Furthermore the standard ESP32 is used to further save battery power (no LED). Sketch is updated accordingly.
