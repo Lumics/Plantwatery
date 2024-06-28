@@ -27,10 +27,10 @@ String ssid = WIFI_SSID;             // CHANGE (WiFi Name)
 String pwd = WIFI_PASSWD;            // CHANGE (WiFi password)
 String sensor_location = LOCATION; // define sensor location
 
-#define sw_version 10 // Define Software Version
+#define sw_version 12 // Define Software Version
 
 // sensor settings
-const int hum_threshold = 70; // In percentage, If soil humidity under
+const int hum_threshold = 80; // In percentage, If soil humidity under
                               // hum_threshold it will trigger the watering
 const int hum_offset = 1071;  // define humidity offset in raw ticks, measure by putting
                               // sensor into water and take this raw value as offset
@@ -47,12 +47,13 @@ const char* timeZone = "CET-1CEST,M3.5.0,M10.5.0/3";
 // watering time
 const int watering_hour_am = 7;       // 7 am
 const int watering_hour_pm = 19;      // 7 pm
-const int watering_time = 120 * 1000;  // in milli seconds
+const int watering_time = 100 * 1000;  // in milli seconds
 
 // *** Hardware Definitions ***
 #define Pin_pump 33         // define esp pin for triggering pump
 #define Pin_humi_sensor 35  // define analog pin to read from humidity sensor
 #define Pin_voltage_divider 32  // define analog pin to read from voltage divider for battery voltage
+#define Pin_vcc_humidity_sensor 4 // define esp pin to give vcc to the humidity sensor (only when ESP32 is awake)
 // when wifi active only ADC1 available GPIO32 - GPIO39
 
 
@@ -171,9 +172,8 @@ void goToDeepSleep(uint64_t sleepTime_sec) {
     uint64_t sleeptime = sleepTime_sec * uS_TO_S_FACTOR; // needed to sleep long enough
     esp_err_t error = esp_sleep_enable_timer_wakeup(sleeptime);
     Serial.println(error);
-    //Serial.flush();
-    // give enough time to print everything to serial
-    delay(300);
+    delay(1000);  // give enough time to print everything to serial
+    Serial.flush();  
     // Go to sleep! Zzzz
     esp_deep_sleep_start();
     log_e("this should not happen");
@@ -235,9 +235,9 @@ bool isTimeToWater() {
     localtime_r(&now, &curr_time);
     char strftime_buf[64];
     strftime(strftime_buf, sizeof(strftime_buf), "%c", &curr_time);
-
+// If the day is the same and the hour diff is smaller or equal to 1 then it should not water
     if (curr_time.tm_mday == last_watering_time.tm_mday && 
-                curr_time.tm_hour == last_watering_time.tm_hour){
+                (abs(curr_time.tm_hour - last_watering_time.tm_hour) <= 1)){
       strftime(strftime_buf, sizeof(strftime_buf), "%c", &last_watering_time);
       log_i("Just watered at %s, go back to sleep", strftime_buf);
         return false;
@@ -258,8 +258,7 @@ uint64_t setSleepTime() {
     char strftime_buf[64];
     strftime(strftime_buf, sizeof(strftime_buf), "%c", &curr_time);
     log_i("current time: %s", strftime_buf);
-    double seconds = 0.f;
-
+    uint64_t seconds = 0;
     if (curr_time.tm_hour >= watering_hour_am &&
         curr_time.tm_hour < watering_hour_pm) {
         // compute watering time in the evening
@@ -269,7 +268,7 @@ uint64_t setSleepTime() {
         evening.tm_min = 0;
         evening.tm_sec = 0;
         seconds = difftime(mktime(&evening), now);
-        log_i("%f seconds until next watering from now", seconds);
+        log_i("%f seconds until next watering from now", (double)seconds);
         strftime(strftime_buf, sizeof(strftime_buf), "%c", &evening);
         log_i("Time to water in the evening: %s", strftime_buf);
     } else if (curr_time.tm_hour >= 0 &&
@@ -281,7 +280,7 @@ uint64_t setSleepTime() {
         early_morning.tm_min = 0;
         early_morning.tm_sec = 0;
         seconds = difftime(mktime(&early_morning), now);
-        log_i("%f seconds until next watering from now", seconds);
+        log_i("%f seconds until next watering from now", (double)seconds);
         strftime(strftime_buf, sizeof(strftime_buf), "%c", &early_morning);
         log_i("Time to water in the morning: %s", strftime_buf);
     } else {
@@ -292,9 +291,9 @@ uint64_t setSleepTime() {
         morning.tm_sec = 0;
         morning.tm_mday = curr_time.tm_mday + 1;  // next day
         seconds = difftime(mktime(&morning), now);
-        log_i("%f seconds until next watering from now", seconds);
+        log_i("%f seconds until next watering from now", (double)seconds);
         strftime(strftime_buf, sizeof(strftime_buf), "%c", &morning);
-        log_i("Time to water in the morning: %s", strftime_buf);
+        log_i("Time to water in the morning the next day: %s", strftime_buf);
     }
  
     sleepTimeS = (uint64_t)seconds;
@@ -345,7 +344,7 @@ void reconnect() {
 }
 
 float measure_battery_level() {
-    float batteryLevel = map(analogRead(Pin_voltage_divider), 0.0f, 4095.0f, 0, 100);
+    float batteryLevel = map(analogRead(Pin_voltage_divider), 2696.0f, 4095.0f, 0, 100); // 2696 = 2.7V, 4095 = 4.1V
     log_i("Battery level measured is: %f", batteryLevel);
     return batteryLevel;
 }
@@ -354,6 +353,7 @@ void setup() {
     delay(200); //Helps with common issue that ESP32 is not waking up after deep sleep 
     Serial.begin(115200);
     pinMode(Pin_pump, OUTPUT);
+    pinMode(Pin_vcc_humidity_sensor, OUTPUT);
 
     log_i("Setup");
     // Wifi
@@ -374,6 +374,8 @@ void setup() {
     printLocalTime();
     log_i("Setup done.");
 
+    digitalWrite(Pin_vcc_humidity_sensor, HIGH); // give voltage to the humidity sensor
+
 
     // One time Execution before deep sleep, therefore not in the loop
     if (!client.connected() && WiFi.status() == WL_CONNECTED) {
@@ -387,6 +389,7 @@ void setup() {
     printLastWateringTime();
 
     hum_raw = analogRead(Pin_humi_sensor);
+    digitalWrite(Pin_vcc_humidity_sensor, LOW); // Turn off power again to the humidity sensor
     log_i("Raw Soil Sensor value: %d", hum_raw);
     float soil_hum = map(hum_raw, hum_offset, 4095.0f, 100, 0);
     log_i("Moisture: %.1f %%", soil_hum);
